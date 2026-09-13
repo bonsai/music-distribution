@@ -1,0 +1,117 @@
+{
+  "version": "1.0.0",
+  "purpose": "音楽配信サービスをエージェント単位で収集・整理・検証し、比較DBへ昇格させるための構造化仕様",
+  "global_rules": {
+    "primary_source_required": true,
+    "volatile_fields_require_checked_at": true,
+    "unknown_value": null,
+    "never_infer_missing_values": true,
+    "source_priority": ["official_pricing", "official_help", "official_terms", "official_store_list", "reputable_secondary", "user_lead"],
+    "revenue_definition": "100_percent はストア手数料控除後か、明記がある場合のみ100%とする",
+    "currency_rule": "原通貨を保持し、JPY換算する場合は換算日とレートを保存",
+    "numeric_rule": "条件として使う値は可能な限り数値化し、単位と期間を別フィールドにする"
+  },
+  "schema": {
+    "service_id": "string",
+    "service_name": "string",
+    "category": "dsp_distributor|direct_sales|social_audio|hybrid|physical_digital",
+    "country_scope": "string[]",
+    "pricing_model": "free|subscription|per_release|commission|custom|hybrid",
+    "annual_fixed_cost": "number|null",
+    "per_release_cost": "number|null",
+    "revenue_share_artist_pct": "number|null",
+    "commission_pct": "number|null",
+    "release_limit_per_year": "number|null",
+    "release_limit_per_month": "number|null",
+    "main_artist_limit": "number|null",
+    "store_count": "number|null",
+    "territory_count": "number|null",
+    "release_speed_days": "number|null",
+    "keep_online_after_cancel": "boolean|null",
+    "official_source_urls": "string[]",
+    "checked_at": "YYYY-MM-DD",
+    "confidence": "0..1",
+    "status": "candidate|researching|verified|conflict|stale"
+  },
+  "agents": [
+    {
+      "id": "AG-01",
+      "name": "候補発見エージェント",
+      "goal": "比較対象となるサービスを発見し分類する",
+      "inputs": ["search_terms", "country", "category"],
+      "outputs": ["service_id", "service_name", "category", "official_url", "country_scope"],
+      "numeric_conditions": {"min_candidates_per_run": 5, "max_candidates_per_run": 30},
+      "search_order": ["official", "industry_directory", "reputable_secondary"],
+      "promotion_rule": "公式URLが確認できる候補だけ research queue へ"
+    },
+    {
+      "id": "AG-02",
+      "name": "料金・収益エージェント",
+      "goal": "固定費・従量費・手数料・還元率を正規化する",
+      "inputs": ["service_url", "pricing_url", "terms_url"],
+      "outputs": ["pricing_model", "annual_fixed_cost", "per_release_cost", "revenue_share_artist_pct", "commission_pct"],
+      "numeric_conditions": {"artist_revenue_pct_min": 0, "artist_revenue_pct_max": 100, "commission_pct_min": 0, "commission_pct_max": 100},
+      "normalization": "年額・月額・1リリース・1曲・アルバムを混同しない",
+      "promotion_rule": "料金と還元率の一次情報が両方確認できたら verified、片方だけなら researching"
+    },
+    {
+      "id": "AG-03",
+      "name": "配信網エージェント",
+      "goal": "配信ストア、SNS、地域、配信数を構造化する",
+      "inputs": ["store_list", "service_page"],
+      "outputs": ["store_count", "territory_count", "platforms", "tiktok", "youtube", "instagram", "capcut"],
+      "numeric_conditions": {"store_count_min": 0, "territory_count_min": 0},
+      "promotion_rule": "55+ のような表現は store_count=55 とせず、store_count_lower_bound=55 として保持"
+    },
+    {
+      "id": "AG-04",
+      "name": "機能・権利エージェント",
+      "goal": "Content ID、収益分配、著作権管理、所有権、MV、カラオケ等を判定する",
+      "inputs": ["features", "rights", "help", "terms"],
+      "outputs": ["youtube_content_id", "split", "copyright_admin", "ownership_pct", "mv", "karaoke", "direct_sales", "physical_distribution"],
+      "numeric_conditions": {"ownership_pct_min": 0, "ownership_pct_max": 100, "split_partner_count_min": 0},
+      "promotion_rule": "機能の有無は true/false/null、手数料は別の数値フィールド"
+    },
+    {
+      "id": "AG-05",
+      "name": "運用・サポートエージェント",
+      "goal": "アーティスト数、配信速度、サポート、支払方法、解約後状態を整理する",
+      "inputs": ["plan_comparison", "support", "terms"],
+      "outputs": ["main_artist_limit", "release_speed_days", "support_language", "payout_methods", "keep_online_after_cancel"],
+      "numeric_conditions": {"release_speed_days_min": 0, "main_artist_limit_min": 1},
+      "promotion_rule": "最短値と通常値を分離し、最短値だけで性能比較しない"
+    },
+    {
+      "id": "AG-06",
+      "name": "検証・差分エージェント",
+      "goal": "既存データと最新一次情報の差分を検出する",
+      "inputs": ["current_record", "new_sources"],
+      "outputs": ["diff", "changed_fields", "conflicts", "stale_fields", "recommended_update"],
+      "numeric_conditions": {"stale_after_days": 30, "critical_stale_after_days": 14},
+      "critical_fields": ["pricing", "revenue_share", "release_limit", "artist_limit", "keep_online_after_cancel"],
+      "promotion_rule": "critical field が14日超、その他が30日超なら再調査 queue"
+    },
+    {
+      "id": "AG-07",
+      "name": "比較スコアエージェント",
+      "goal": "条件を数値化して用途別スコアを算出する",
+      "inputs": ["verified_records", "user_constraints"],
+      "outputs": ["cost_score", "revenue_score", "scale_score", "speed_score", "feature_score", "total_score"],
+      "weights": {"cost": 0.20, "revenue": 0.20, "distribution": 0.15, "speed": 0.10, "features": 0.20, "operations": 0.15},
+      "score_range": [0, 100],
+      "promotion_rule": "confidence < 0.80 の値はランキング計算から除外またはペナルティ"
+    }
+  ],
+  "numeric_conditions": {
+    "cheap": {"annual_fixed_cost_jpy_max": 5000},
+    "free_entry": {"annual_fixed_cost_jpy": 0, "per_release_cost_jpy": 0},
+    "high_artist_share": {"revenue_share_artist_pct_min": 90},
+    "full_artist_share": {"revenue_share_artist_pct": 100},
+    "unlimited_release": {"release_limit_per_year": null, "requires_text_match": "unlimited"},
+    "many_stores": {"store_count_lower_bound_min": 50},
+    "fast_release": {"release_speed_days_max": 3},
+    "japan_ready": {"support_language_required": "ja", "country_scope_required": "JP"},
+    "creator_friendly": {"revenue_share_artist_pct_min": 90, "annual_fixed_cost_jpy_max": 10000, "release_speed_days_max": 7},
+    "low_risk": {"keep_online_after_cancel": true, "ownership_pct": 100, "confidence_min": 0.9}
+  }
+}
