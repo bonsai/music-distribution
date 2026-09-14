@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-09-14",
+  "scope": "music monetization channels beyond distributors",
+  "channels": [
+    {
+      "id": "daiki-sound",
+      "name": "Daiki Sound",
+      "category": ["distribution", "physical", "karaoke"],
+      "model": ["digital_distribution", "cd_dvd_distribution", "karaoke_distribution"],
+      "direct_sale": false,
+      "physical_sale": true,
+      "streaming": true,
+      "karaoke": true,
+      "promotion": true,
+      "pricing_model": "contract/quote",
+      "best_for": ["Japan labels", "physical distribution", "karaoke", "release support"],
+      "evidence_ids": ["daiki-sound-service", "daiki-sound-download-pricing"]
+    },
+    {
+      "id": "bandcamp",
+      "name": "Bandcamp",
+      "category": ["direct-to-fan", "digital_store", "physical_merch"],
+      "model": ["digital_sales", "vinyl", "cd", "cassette", "merch", "fan_support"],
+      "direct_sale": true,
+      "physical_sale": true,
+      "streaming": false,
+      "fan_data": true,
+      "pricing_model": "revenue_share",
+      "fees": {"digital": "15%", "physical": "10%", "digital_fee_after_5000_usd": "10%"},
+      "best_for": ["direct fan sales", "high-margin catalog", "physical merch", "fan relationships"],
+      "evidence_ids": ["bandcamp-fees"]
+    },
+    {
+      "id": "soundcloud",
+      "name": "SoundCloud",
+      "category": ["streaming", "distribution", "direct-fan"],
+      "model": ["streaming", "distribution", "fan_support", "merch", "vinyl"],
+      "direct_sale": true,
+      "physical_sale": true,
+      "streaming": true,
+      "distribution": true,
+      "fan_support": true,
+      "royalty_share": "100% distribution earnings according to current official page",
+      "best_for": ["discovery", "community", "distribution plus direct audience"],
+      "evidence_ids": ["soundcloud-artist"]
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "category": ["video", "streaming", "fan_funding", "rights"],
+      "model": ["advertising", "premium", "memberships", "super_chat", "super_thanks", "shopping", "music_rights"],
+      "direct_sale": false,
+      "streaming": true,
+      "fan_funding": true,
+      "rights_monetization": true,
+      "revenue_share": {"watch_page_ads": "55% of net revenue", "fan_funding": "70% of net revenue"},
+      "best_for": ["video audience", "UGC discovery", "Content ID", "fan funding"],
+      "cautions": ["YPP eligibility and rights ownership requirements apply."],
+      "evidence_ids": ["youtube-ypp", "youtube-content-id"]
+    },
+    {
+      "id": "stripe-personal-site",
+      "name": "Personal site + Stripe",
+      "category": ["direct-to-fan", "commerce", "subscription"],
+      "model": ["digital_downloads", "physical_goods", "tickets", "membership", "subscription", "donation", "custom_products"],
+      "direct_sale": true,
+      "physical_sale": true,
+      "fan_data": true,
+      "pricing_model": "payment_processing",
+      "fees": {"payment_links_card": "3.6% per successful card payment in Japan page"},
+      "best_for": ["own storefront", "custom pricing", "maximum control", "fan CRM", "bundles"],
+      "cautions": ["Artist must build/operate storefront, fulfillment, tax and customer support workflows."],
+      "evidence_ids": ["stripe-payment-links"]
+    }
+  ]
+}
